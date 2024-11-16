@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Classifier</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to right, #FFDEE9, #B5FFFC);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            max-width: 500px;
+            width: 100%;
+            animation: fadeIn 1s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        img {
+            max-width: 100%;
+            margin-bottom: 20px;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+        img.visible {
+            opacity: 1;
+            animation: scaleUp 0.5s ease-in-out;
+        }
+        @keyframes scaleUp {
+            from { transform: scale(0.9); }
+            to { transform: scale(1); }
+        }
+        input[type="file"] {
+            margin-bottom: 20px;
+            font-size: 1rem;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+        button:hover {
+            background-color: #218838;
+            transform: scale(1.05);
+            box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        #nutritional-info, #chatbot-response {
+            font-size: 1.1rem;
+            margin-top: 20px;
+            margin-bottom: 30px;
+            text-align: left;
+            opacity: 0;
+            animation: slideIn 0.7s ease-in-out forwards;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        #predictionResult {
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #333;
+        }
+        h1 {
+            font-size: 2rem;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            width: 80%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        /* Custom cursor */
+        * {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Food Classifier 🍽️</h1>
+        <img id="food-image" src="" alt="Uploaded Image" class="hidden">
+        <form id="predictForm" enctype="multipart/form-data">
+            <input type="file" id="fileInput" name="file" accept="image/*" required>
+            <br>
+            <button type="submit">Predict Food</button>
+        </form>
+
+        <div id="prediction">
+            <p id="predictionResult"></p>
+            <div id="nutritional-info"></div>
+        </div>
+
+        <form id="chatbotForm">
+            <input type="text" id="chatInput" placeholder="Ask about the food..." required>
+            <br><br>
+            <button type="submit">Ask Chatbot</button>
+        </form>
+
+        <p id="chatbot-response"></p>
+    </div>
+
+    <script>
+        // Image preview and fade-in effect
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const image = document.getElementById('food-image');
+                    image.src = e.target.result;
+                    image.classList.add('visible');  // Apply fade-in effect
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Prediction Form Submission with Animation
+        document.getElementById('predictForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            let formData = new FormData();
+            formData.append("file", document.getElementById('fileInput').files[0]);
+
+            fetch('/predict', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('predictionResult').innerText = `Predicted Food: ${data.prediction}`;
+                document.getElementById('nutritional-info').innerHTML = `
+                    - Calories: ~${data.calories} kcal <br>
+                    - Total Fat: ~${data.totalFat} grams <br>
+                    - Saturated Fat: ~${data.saturatedFat} grams <br>
+                    - Protein: ~${data.protein} grams
+                `;
+                document.getElementById('predictionResult').style.opacity = "1"; // Animation for prediction text
+                document.getElementById('nutritional-info').style.opacity = "1";
+            })
+            .catch(error => console.error('Error:', error));
+        });
+
+        // Chatbot Form Submission with Animation
+        document.getElementById('chatbotForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const question = document.getElementById('chatInput').value;
+
+            fetch('/chatbot', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ question: question })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const chatbotResponse = document.getElementById('chatbot-response');
+                chatbotResponse.innerText = `Chatbot: ${data.response}`;
+                chatbotResponse.style.opacity = "1"; // Fade-in for chatbot response
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    </script>
+</body>
+</html>
